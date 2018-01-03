@@ -1,0 +1,19 @@
+{
+  "name": "student_api",
+  "version": "1.0.0",
+  "description": "RESTful student API for the IBM Cork CoderDojo",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon server.js"
+  },
+  "author": "Michael OSullivan MichaelOSullivan@ie.ibm.com",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^1.13.3"
+  },
+  "dependencies": {
+    "express": "^4.16.2",
+    "nano": "^6.4.2"
+  }
+}
