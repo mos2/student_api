@@ -78,7 +78,7 @@ exports.getStudent = function(request, response) {
         else {
             console.error("An error occurred while fetching student with ID " + request.params.studentid + ": "
                 + error);
-            response.status(500).send("Sorry, something went wrong while trying to fetch the student you requested, " +
+            response.status(404).send("Sorry, something went wrong while trying to fetch the student you requested, " +
                 "try again later!");
         }
     });
