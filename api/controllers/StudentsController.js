@@ -55,7 +55,8 @@ exports.getStudents = function(request, response) {
             //... or if there was an error (error is not empty), just print it out on the console as an error message.
             console.error("An error occurred while fetching the list of students from the database: " + error);
             //Send the client back a HTTP 500 Internal Server Error Status, and give them a friendly message that something went wrong...
-            response.status(500).send("Sorry, something went wrong while getting the list of students, try again later!");
+            response.status(500).send("Sorry, something went wrong while getting the list of students, " +
+                "try again later!");
         }
     });
 };
@@ -75,8 +76,10 @@ exports.getStudent = function(request, response) {
             response.send(student)
         }
         else {
-            console.error("An error occurred while fetching student with ID " + request.params.studentid + ": " + error);
-            response.status(500).send("Sorry, something went wrong while trying to fetch the student you requested, try again later!");
+            console.error("An error occurred while fetching student with ID " + request.params.studentid + ": "
+                + error);
+            response.status(500).send("Sorry, something went wrong while trying to fetch the student you requested, " +
+                "try again later!");
         }
     });
 };
@@ -85,7 +88,7 @@ exports.getStudent = function(request, response) {
 exports.insertStudent = function(request, response) {
     //Call the nano insert function, which will insert a new student record, formatted as a JSON document, into the database.
     //The student record is contained in the body of the request object.
-    students.insert(request.body, function(error, body) {
+    students.insert(request.body, function (error, body) {
         if (!error) {
             //If no errors, just print out the result of the insertion to the console (contained in the body variable).
             console.log(body);
@@ -94,7 +97,33 @@ exports.insertStudent = function(request, response) {
         }
         else {
             console.error("An error occurred while trying to insert the student: " + error);
-            response.status(500).send("Sorry, something went wrong while trying to insert the new student, try again later!");
+            response.status(500).send("Sorry, something went wrong while trying to insert the new student, " +
+                "try again later!");
+        }
+    });
+};
+
+exports.deleteStudent = function(request, response) {
+    students.get(request.params.studentid, function(error, student) {
+        if (!error) {
+            students.destroy(student._id, student._rev, function(error, body) {
+                if (!error) {
+                    console.log(body);
+                    response.send(body)
+                }
+                else {
+                    console.error("An error occurred while trying to delete the student with ID : "
+                        + request.params.studentid + ": " + error);
+                    response.status(500).send("Sorry, something went wrong while trying to delete the student, " +
+                        "try again later!");
+                }
+            });
+        }
+        else {
+            console.error("An error occurred while trying to find student to delete, with ID " +
+                request.params.studentid + ": " + error);
+            response.status(500).send("Sorry, something went wrong while trying to delete the student, " +
+                "try again later!");
         }
     });
 };

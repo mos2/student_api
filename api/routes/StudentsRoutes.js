@@ -17,6 +17,7 @@ module.exports = function(app) {
     //and run the getStudent() method. The method will be passed whatever is provided for <studentid> in the URL,
     //to fetch the record for the student from the database with an id of <studentid>
     app.route('/students/:studentid')
-        .get(studentsController.getStudent);
+        .get(studentsController.getStudent)
+        .delete(studentsController.deleteStudent);
 
 };
