@@ -3,10 +3,11 @@
 //Get a reference to nano, an npm library for working with CouchDB. Store it in the variable
 //called nano. We need to tell it where CouchDB is running. On our local laptops, this should be
 //http://localhost:5984 by default.
-var nano = require('nano')('http://localhost:5984');
+var nano = require('nano')(process.env.CLOUDANT_CONNECTION);
 //Get a reference to the database in CouchDB called students, and store it in a variable called students.
 // All calls we need to make to the students database should now go through this variable.
 var students = nano.use('students');
+var parents = nano.use('parents');
 
 //Each function below talks to our students Database in CouchDB, and will either retrieve information
 //about students, or insert/update information in the database about students.
@@ -26,7 +27,7 @@ exports.getStudents = function(request, response) {
     //include_docs set to true will force CouchDB to give back the entire student record (by default it does not do this).
     //limit set to 10 will return a maxiumum of 10 student records.
     //descending set to true will return the student records in a descending order from highest id, to lowest id.
-    var params  = {include_docs: true, limit: 10, descending: true}
+    var params  = {include_docs: true, descending: true}
 
     //Call the nano list function on the students database to get the list of all student records, passing the params we specified.
     students.list(params, function(error, body) {
@@ -64,25 +65,86 @@ exports.getStudents = function(request, response) {
 //Export a new function called getStudent. This will return the record of a single student
 //who has an id of <studentid> (found from request.params.studentid).
 exports.getStudent = function(request, response) {
-    //Call the nano get function, which will fetch a single record from the database, by using the id of the record.
-    //Here, we get the studentid that the client sent us from the paramaters of the request object.
-    students.get(request.params.studentid, function(error, student) {
-        //In this anonymous callback function, the result from the database is just a body containing one student record,
-        //not rows of multiple records. So we can just use the result as it is without having to loop over it.
-        if (!error) {
-            //Print all the student's details to the Console.
-            console.log(student);
-            //Use the response object to send the student record back to the client.
-            response.send(student)
-        }
-        else {
-            console.error("An error occurred while fetching student with ID " + request.params.studentid + ": "
-                + error);
-            response.status(404).send("Sorry, something went wrong while trying to fetch the student you requested, " +
-                "try again later!");
-        }
+    var studentPromise = getStudentFromDatabase(request.params.studentid);
+    studentPromise.then(function(student) {
+        var parent_ids = student.parents;
+        var parents_list = [];
+        console.log(parent_ids);
+        var parentPromise = getParentsFromDatabase(parent_ids);
+        parentPromise.then(function(parents) {
+            parents.rows.forEach(function(parent, index) {
+                console.log(parent);
+                parents_list.push({"firstname": parent.doc.firstname, "surname": parent.doc.surname, "email": parent.doc.email, "phone": parent.doc.phone});
+            });
+            console.log(parents_list);
+            var studentResponse = {"firstName": student.firstname, "surname": student.surname, "dob": student.dob,   "parents": parents_list};
+            response.send(studentResponse);
+        }, function(error) {
+            console.error("Error retrieving parent from database: " + error);
+        })
+    }, function(error) {
+        console.error("Error retrieving student from database: " + error);
     });
 };
+
+var getStudentFromDatabase = function(student_id) {
+
+    //Call the nano get function, which will fetch a single record from the database, by using the id of the record.
+    //Here, we get the studentid that the client sent us from the paramaters of the request object.
+    return new Promise(function(resolve, reject) {
+        students.get(student_id, function(error, student) {
+            if (!error) {
+                resolve(student)
+            } else {
+                reject(error);
+            }
+        });
+    });
+};
+
+var getParentsFromDatabase = function(parent_ids) {
+
+    //Call the nano get function, which will fetch a single record from the database, by using the id of the record.
+    //Here, we get the studentid that the client sent us from the paramaters of the request object.
+    return new Promise(function(resolve, reject) {
+        parents.fetch({keys: parent_ids}, function(error, parents) {
+            if (!error) {
+                console.log("Parents in here are: " + parents);
+                resolve(parents)
+            } else {
+                reject(error);
+            }
+        });
+    });
+};
+
+// students.get(request.params.studentid, function(error, student) {
+//     //In this anonymous callback function, the result from the database is just a body containing one student record,
+//     //not rows of multiple records. So we can just use the result as it is without having to loop over it.
+//     if (!error) {
+//         //Print all the student's details to the Console.
+//         console.log(student);
+//         var parent_ids = student.parents;
+//         var parents_list = [];
+//         console.log(parent_ids);
+//         parent_ids.forEach(function(item, index) {
+//             console.log(item + " " + index)
+//             parents.get(item, function(error, parent) {
+//                 parents_list.push(parent);
+//                 console.log("Parents list now: " + parents_list);
+//             })
+//             response.send(student)
+//         });
+//         console.log("Parents list here: " + parents_list);
+//         //Use the response object to send the student record back to the client.
+//     }
+//     else {
+//         console.error("An error occurred while fetching student with ID " + request.params.studentid + ": "
+//             + error);
+//         response.status(404).send("Sorry, something went wrong while trying to fetch the student you requested, " +
+//             "try again later!");
+//     }
+// });
 
 //Export a new function called insertStudent. This will insert a new student record into the database.
 exports.insertStudent = function(request, response) {
